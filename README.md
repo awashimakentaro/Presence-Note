@@ -1,165 +1,120 @@
-# Presence Note
+# README.md
 
-Presence Note は、
-**離れていても「そばにいる感覚」を物理的に届けるためのシステム**です。
+【責務】
+Presence Note v1 のソフトウェア構成・セットアップ・運用方法を人間オペレーター向けにまとめる。
 
-送信者が手書きで作成したメッセージ（画像）を ntfy 経由で送信し、
-受信側に設置された Raspberry Pi + 感熱プリンタが
-**何の操作も要求せず、静かに印刷**します。
+【使用箇所】
+- リポジトリ開封直後の参照
+- systemd サービス構築や手動デバッグ時の手順書
 
-このプロジェクトは、
-効率や自動化よりも **心理的安全性・非侵襲性・存在感**を重視します。
+【やらないこと】
+- エージェント実装の詳細解説（各モジュールの docstring を参照）
+- プリンタ固有のトラブルシュート
+- v1 で禁止されている機能の追加検討
 
----
-
-## コンセプト
-
-* 監視しない
-* 強制しない
-* 保存しない
-* 判断しない
-* 失敗は静かに無視する
-
-Presence Note は「通知システム」ではありません。
-**存在の痕跡を、物理として残す装置**です。
+【他ファイルとの関係】
+- AGENTS.md / docs 配下の要件を参照しつつ、`app/` 配下の実装に接続するためのハブ文書。
 
 ---
 
-## 全体構成（概要）
+## 1. プロジェクト概要
+Presence Note は **返信や行動を要求しない “思われている証跡” を静かに印刷する装置** です。設計思想や禁止事項は `AGENTS.md`, `docs/要件定義書.md`, `docs/設計書.md` を必ず参照してください。
 
-```
-[ iPad / iPhone ]
-  └ 手書き + 写真（1枚の画像）
-        ↓
-      ntfy
-        ↓
-[ Raspberry Pi ]
-  ├─ 画像正規化
-  └─ 感熱プリンタ印刷
-```
+本リポジトリはその v1 実装であり、以下のシンプルな 3 エージェント構成を順番に実行します。
 
-* 送信形式：**毎回 1 枚の画像（PNG / JPEG）**
-* レイアウト・サイズ・向き：**完全自由**
-* 受信側操作：**一切不要**
+1. `Receiver Agent` (`app/receiver.py`): ntfy から添付付きメッセージを 1 件受信
+2. `Processor Agent` (`app/image_processor.py`): 受信写真を 90° 回転させる（サイズ調整はプリンタ側に委ねる）
+3. `Printer Agent` (`app/printer.py`): CUPS (`lp`) で Canon SELPHY 等へ印刷命令
+
+履歴保持・分析・再試行は一切行いません。失敗しても沈黙し、外部へ通知しません。
 
 ---
 
-## ディレクトリ構成
-
+## 2. ディレクトリ構成
 ```
-.
-├─ AGENTS.md          # 最重要：行動規範・開発ルール
-├─ README.md          # 本ファイル
-├─ docs/
-│  ├─ 要件定義書.md
-│  └─ 設計書.md
-└─ app/
-   ├─ image_processor.py
-   ├─ printer.py
-   ├─ subscriber.py
-   ├─ service.py
-   └─ main.py
+Presence Note/
+├── AGENTS.md               # 行動規範（最優先）
+├── docs/
+│   ├── 要件定義書.md
+│   └── 設計書.md
+├── app/
+│   ├── config.py           # 設定値
+│   ├── receiver.py         # ntfy 受信
+│   ├── image_processor.py  # 画像整形
+│   ├── printer.py          # CUPS 印刷
+│   ├── logger.py           # 節目の独り言
+│   ├── storage.py          # v1 では空実装
+│   ├── main.py             # 1 サイクル実行
+│   └── ntfy_print_daemon.py# 常駐ループ
+├── requirements.txt
+└── README.md (本ファイル)
 ```
 
 ---
 
-## 🚨 最重要ルール（必ず読む）
-
-### AI / 人間を問わず、必ず守ること
-
-* **AGENTS.md が最優先**
-* 設計書.md・要件定義書.md を前提にする
-* SRP（単一責務原則）を厳守
-* すべてのファイル・関数に日本語ドキュメントを書く
-
-👉 詳細は **AGENTS.md** を参照。
+## 3. セットアップ
+1. Python 3.11 以上推奨
+2. 仮想環境を任意に作成
+3. 依存インストール
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. CUPS に Canon SELPHY CP1500 など目的のプリンタを登録し、`lpstat -p` でキュー名を確認
 
 ---
 
-## Codex（AI）を使った作業の進め方
+## 4. 環境変数
+`app/config.py` は以下の環境変数を参照します。`.env` ファイル（UTF-8, `KEY=VALUE` 形式）をリポジトリ直下に置いておけば、`python-dotenv` によって起動時に自動読み込みされます。systemd などで別ファイルを参照する場合は同じ変数名で設定してください。
 
-### 原則
+| 変数名 | 例 | 必須 | 用途 |
+| --- | --- | --- | --- |
+| `NTFY_TOPIC_URL` | `https://ntfy.sh/karin` | ✔ | 受信トピック。末尾 `/json` は自動付与されます |
+| `PRINTER_NAME` | `Canon-SELPHY` | ✔ | `lp -d` に渡す CUPS キュー名 |
+| `NTFY_TOKEN` | `secret-token` | 任意 | ntfy が Bearer 認証を要求する場合のみ |
 
-* **1 回の Codex 実行 = 1 ファイル**
-* 勝手に複数ファイルを編集させない
-* 毎回「読むべきドキュメント」を明示する
+`.env` の例:
+```
+NTFY_TOPIC_URL=https://ntfy.sh/karin
+PRINTER_NAME=Canon_SELPHY_CP1500
+NTFY_TOKEN=
+```
 
 ---
 
-### 推奨コマンド例（テンプレ）
+## 5. 1 サイクル実行（手動）
+```bash
+python app/main.py
+```
+動作: 設定値を読み込み → 受信待機 → 1 枚だけ印刷 → 終了。失敗時は標準出力に節目メッセージを残して静かに戻ります。
+
+---
+
+## 6. 常駐実行
+`app/ntfy_print_daemon.py` は CLI 引数と環境変数を統合し、`run_cycle` を無限ループで呼び出します。
 
 ```bash
-codex exec '
-You are an AI agent working on Presence Note.
-Read AGENTS.md, docs/設計書.md, and docs/要件定義書.md carefully.
-Follow them strictly.
-Do NOT expand scope.
-Implement only app/image_processor.py. 
-'
+python app/ntfy_print_daemon.py \
+  --topic https://ntfy.sh/karin \
+  --printer Canon-SELPHY \
+  --token secret-token \
+  --idle-wait 1.0
 ```
-
-### ポイント
-
-* `Read AGENTS.md` は **必須**
-* `Implement only ...` で作業範囲を固定
-* 別ファイルを触りたい場合は **次の実行で指定し直す**
+- `--topic`/`--printer`/`--token` を省略すると環境変数で補われます
+- `--idle-wait` は 1 サイクル完了後に再度受信待機へ戻る前のディレイ（秒）
+- systemd 化は `Demon.md` の具体例を参照してください
 
 ---
 
-## 実装の進め方（推奨順）
-
-1. `image_processor.py`
-
-   * 画像正規化（最も重要・独立性が高い）
-
-2. `printer.py`
-
-   * 感熱プリンタ制御
-
-3. `subscriber.py`
-
-   * ntfy 購読処理
-
-4. `service.py`
-
-   * 受信 → 処理 → 印刷 の調停
-
-5. `main.py`
-
-   * エントリポイント / systemd 用
-
-👉 各ステップで **1 ファイルずつ**進めること。
+## 7. 失敗時の扱い
+- ntfy 受信・画像処理・印刷のいずれかが例外を投げた場合、そのサイクルは終了し「何も起きなかった」ことになります
+- 再試行やエラー通知は実装しません（AGENTS.md 4章・5章の制約）
+- 常駐デーモンでは例外をログに記録後、`idle_wait` だけ待機して次サイクルに進みます
 
 ---
 
-## 開発ポリシー
+## 8. 制約の再確認
+- 永続化禁止: `storage.py` は空実装、履歴フォルダも作成しません
+- 意味解釈禁止: `image_processor` は文字列を等幅で折り返すだけで、内容分析はしません
+- 条件分岐による振る舞い変更禁止: 直列処理のみで役割が変わる分岐は入れていません
 
-* 状態を持たない
-* 永続化しない
-* 履歴を残さない
-* 再試行しない
-* 失敗はログ 1 行のみ
-
-**「便利だから」は理由にならない。**
-設計に書いていないことは、実装しない。
-
----
-
-## 将来について（v2 以降）
-
-* Web UI
-* 送信補助ツール
-* 印刷フォーマット拡張
-
-これらは **v1 では行わない**。
-追加する場合は、必ず設計と AGENTS.md を更新する。
-
----
-
-## このプロジェクトについて
-
-Presence Note は
-**技術プロジェクトであると同時に、感情を扱うプロジェクト**です。
-
-コードの正しさよりも、
-**振る舞いの誠実さ**を優先してください。
+この README は運用の入口であり、疑義があれば必ず `AGENTS.md` と要件ドキュメントへ立ち返ってください。
