@@ -71,7 +71,7 @@ def run_cycle(settings: Settings) -> None:
         "caption": payload.caption,
         "topic": settings.ntfy_topic_url,
     }
-    save_history(None, metadata)
+    save_history(payload.image_bytes, metadata)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,3 @@
+# History artifacts produced at runtime
+app/history/*
+!app/history/README.md

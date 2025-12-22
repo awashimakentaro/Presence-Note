@@ -2,38 +2,52 @@
 app/storage.py
 
 【責務】
-Presence Note v1 では履歴を保持しないため、呼び出しを受けても何も保存しない明示的な空実装として振る舞う。
+ntfy から受信した元画像を `app/history` 配下に日付単位で保存する。
 
 【使用箇所】
 - main.py
 - ntfy_print_daemon.py
 
 【やらないこと】
-- ファイル書き込み
-- 履歴管理
-- 集計・分析
+- メタデータの分析
+- 画像内容の評価
+- 保存データのローテーション
 
 【他ファイルとの関係】
-- main から呼ばれても即座に復帰し、副作用を生まないことで AGENTS.md の「永続化禁止」を担保する。
+- history ディレクトリの構造はこのモジュールが一元管理し、他モジュールは介入しない。
 """
 
 from __future__ import annotations
 
+from datetime import datetime
+import imghdr
+from pathlib import Path
 from typing import Any, Mapping
 
+HISTORY_ROOT = Path(__file__).resolve().parent / "history"
 
-def save_history(_: str | None = None, metadata: Mapping[str, Any] | None = None) -> None:
-    """履歴保存を行わずに即座に戻るノップ関数。
 
-    呼び出し元: main.py, ntfy_print_daemon.py
+def save_history(image_bytes: bytes, metadata: Mapping[str, Any] | None = None) -> Path:
+    """受信した画像を history ディレクトリへ保存する。"""
 
-    入力:
-    - _: 受け取るが使用しない画像パス
-    - metadata: 任意の追加情報（未使用）
+    timestamp = datetime.now()
+    day_dir = HISTORY_ROOT / timestamp.strftime("%Y-%m-%d")
+    day_dir.mkdir(parents=True, exist_ok=True)
 
-    出力 / 副作用:
-    - 何も返さず、副作用も生まない。
-    - AGENTS.md の永続化禁止に従い、あえて空実装として残す。
-    """
+    extension = _detect_extension(image_bytes)
+    filename = f"{timestamp.strftime('%H%M%S_%f')}.{extension}"
+    file_path = day_dir / filename
+    file_path.write_bytes(image_bytes)
+    _ = metadata
+    return file_path
 
-    return None
+
+def _detect_extension(image_bytes: bytes) -> str:
+    """画像バイト列から適切な拡張子を推定する。"""
+
+    guessed = imghdr.what(None, h=image_bytes)
+    if guessed == "jpeg":
+        return "jpg"
+    if not guessed:
+        return "bin"
+    return guessed

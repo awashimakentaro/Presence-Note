@@ -1,3 +1,8 @@
+# HTTP クライアント (ntfy ストリーム受信用)
 requests>=2.31.0
+
+# 画像の回転処理 (PIL)
 Pillow>=10.0.0
+
+# `.env` ローダー
 python-dotenv>=1.0.0
