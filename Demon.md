@@ -1,5 +1,7 @@
 # ntfy_print_daemon 常駐化ガイド
 
+ qiita https://qiita.com/nnhkrnk/items/5082485e680606e74982
+
 `app/ntfy_print_daemon.py` を Raspberry Pi 上で常に稼働させるための systemd サービス構築手順。
 
 ## 0. 今回構築した具体例

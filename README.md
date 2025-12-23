@@ -112,14 +112,29 @@ python app/ntfy_print_daemon.py \
 
 ---
 
-## 8. 失敗時の扱い
+## 8. systemd 常駐
+- `systemd/ntfy-print.service` を `/etc/systemd/system/` へ配置し、`systemd/ntfy-print.env` を `/etc/default/ntfy-print` としてコピーします
+- 仮想環境や WorkingDirectory のパスは環境に合わせて編集します
+- 有効化手順:
+  ```bash
+  sudo cp systemd/ntfy-print.service /etc/systemd/system/
+  sudo cp systemd/ntfy-print.env /etc/default/ntfy-print
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now ntfy-print.service
+  systemctl status ntfy-print.service
+  ```
+- Wifi や本体電源が復帰した際も `ntfy_print_daemon` が継続して ntfy を監視します
+
+---
+
+## 9. 失敗時の扱い
 - ntfy 受信・画像処理・印刷のいずれかが例外を投げた場合、そのサイクルは終了し「何も起きなかった」ことになります
 - 再試行やエラー通知は実装しません（AGENTS.md 4章・5章の制約）
 - 常駐デーモンでは例外をログに記録後、`idle_wait` だけ待機して次サイクルに進みます
 
 ---
 
-## 9. 制約の再確認
+## 10. 制約の再確認
 - 永続化禁止: `storage.py` は空実装、履歴フォルダも作成しません
 - 意味解釈禁止: `image_processor` は文字列を等幅で折り返すだけで、内容分析はしません
 - 条件分岐による振る舞い変更禁止: 直列処理のみで役割が変わる分岐は入れていません

@@ -120,3 +120,4 @@ python -m app.main
 ## 7. 参考
 - systemd 常駐化の手順は `Demon.md`
 - NTFY/CUPS 設定の詳細は `README.md` を参照
+- `systemd/ntfy-print.service` / `systemd/ntfy-print.env` を `/etc/systemd/system/` / `/etc/default/` に配置することで自動起動可能

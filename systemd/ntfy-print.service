@@ -1,0 +1,41 @@
+# systemd/ntfy-print.service
+#
+# 【責務】
+# Presence Note の常駐処理 (ntfy_print_daemon) を systemd 上で自動起動させる。
+#
+# 【使用箇所】
+# - Raspberry Pi 上で /etc/systemd/system/ntfy-print.service として配置する想定。
+#
+# 【やらないこと】
+# - 環境変数の定義（/etc/default/ntfy-print など外部ファイルで行う）
+# - 仮想環境の作成
+#
+# 【他ファイルとの関係】
+# - `app/ntfy_print_daemon.py` を呼び出す。
+# - RUSPI.md / Demon.md に記載された手順と併用する。
+#
+# 配置例:
+#   sudo cp systemd/ntfy-print.service /etc/systemd/system/
+#   sudo cp systemd/ntfy-print.env /etc/default/ntfy-print
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ntfy-print.service
+
+[Unit]
+Description=Presence Note ntfy print daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/juggler/Karin
+EnvironmentFile=/etc/default/ntfy-print
+ExecStart=/home/juggler/Karin/.venv/bin/python -m app.ntfy_print_daemon \
+  --topic ${NTFY_TOPIC_URL} \
+  --printer ${PRINTER_NAME} \
+  --token ${NTFY_TOKEN}
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
