@@ -5,7 +5,7 @@
 `app/ntfy_print_daemon.py` を Raspberry Pi 上で常に稼働させるための systemd サービス構築手順。
 
 ## 0. 今回構築した具体例
-- 仮想環境を有効化して `python app/ntfy_print_daemon.py --topic https://ntfy.sh/karin/json --connection usb` を実行し、正常に動く状態を確認済み。
+- 仮想環境を有効化して `python app/ntfy_print_daemon.py --topic https://ntfy.sh/YOUR_TOPIC/json --connection usb` を実行し、正常に動く状態を確認済み。
 - `readlink -f .venv/bin/python` の結果 `/home/juggler/Karin/.venv/bin/python` を `ExecStart` に使用。
 - `/etc/systemd/system/ntfy-print.service` を以下内容で作成し、`sudo systemctl daemon-reload && sudo systemctl enable --now ntfy-print.service` を実行。
 ````
@@ -17,7 +17,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/juggler/Karin
-ExecStart=/home/juggler/Karin/.venv/bin/python /home/juggler/Karin/app/ntfy_print_daemon.py --topic https://ntfy.sh/karin/json --connection usb
+ExecStart=/home/juggler/Karin/.venv/bin/python /home/juggler/Karin/app/ntfy_print_daemon.py --topic https://ntfy.sh/YOUR_TOPIC/json --connection usb
 Restart=always
 RestartSec=5
 User=juggler
@@ -37,7 +37,7 @@ WantedBy=multi-user.target
 
 ```
 TOKEN=xxxxx
-TOPIC=https://ntfy.sh/karin/json
+TOPIC=https://ntfy.sh/YOUR_TOPIC/json
 ```
 
 ## 3. systemd サービスファイル `/etc/systemd/system/ntfy-print.service`

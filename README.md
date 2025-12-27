@@ -64,17 +64,17 @@ Presence Note/
 ---
 
 ## 4. 環境変数
-`app/config.py` は以下の環境変数を参照します。`.env` ファイル（UTF-8, `KEY=VALUE` 形式）をリポジトリ直下に置いておけば、`python-dotenv` によって起動時に自動読み込みされます。systemd などで別ファイルを参照する場合は同じ変数名で設定してください。
+`app/config.py` は以下の環境変数を参照します。まずは `.env.template` を `.env` にコピーし、値を自分の環境に合わせて書き換えてください。`.env`（UTF-8, `KEY=VALUE` 形式）をリポジトリ直下に置いておけば、`python-dotenv` によって起動時に自動読み込みされます。systemd などで別ファイルを参照する場合は同じ変数名で設定してください。
 
 | 変数名 | 例 | 必須 | 用途 |
 | --- | --- | --- | --- |
-| `NTFY_TOPIC_URL` | `https://ntfy.sh/karin` | ✔ | 受信トピック。末尾 `/json` は自動付与されます |
+| `NTFY_TOPIC_URL` | `https://ntfy.sh/YOUR_TOPIC` | ✔ | 受信トピック。末尾 `/json` は自動付与されます |
 | `PRINTER_NAME` | `Canon-SELPHY` | ✔ | `lp -d` に渡す CUPS キュー名 |
 | `NTFY_TOKEN` | `secret-token` | 任意 | ntfy が Bearer 認証を要求する場合のみ |
 
 `.env` の例:
 ```
-NTFY_TOPIC_URL=https://ntfy.sh/karin
+NTFY_TOPIC_URL=https://ntfy.sh/YOUR_TOPIC
 PRINTER_NAME=Canon_SELPHY_CP1500
 NTFY_TOKEN=
 ```
@@ -94,7 +94,7 @@ python app/main.py
 
 ```bash
 python app/ntfy_print_daemon.py \
-  --topic https://ntfy.sh/karin \
+  --topic https://ntfy.sh/YOUR_TOPIC \
   --printer Canon-SELPHY \
   --token secret-token \
   --idle-wait 1.0
@@ -113,12 +113,13 @@ python app/ntfy_print_daemon.py \
 ---
 
 ## 8. systemd 常駐
-- `systemd/ntfy-print.service` を `/etc/systemd/system/` へ配置し、`systemd/ntfy-print.env` を `/etc/default/ntfy-print` としてコピーします
+- `systemd/ntfy-print.service` を `/etc/systemd/system/` へ配置し、`systemd/ntfy-print.env.template` を `/etc/default/ntfy-print` にコピーした後、値を編集します
 - 仮想環境や WorkingDirectory のパスは環境に合わせて編集します
 - 有効化手順:
   ```bash
   sudo cp systemd/ntfy-print.service /etc/systemd/system/
-  sudo cp systemd/ntfy-print.env /etc/default/ntfy-print
+  sudo cp systemd/ntfy-print.env.template /etc/default/ntfy-print
+  sudoedit /etc/default/ntfy-print  # NTFY_TOPIC_URL などを設定
   sudo systemctl daemon-reload
   sudo systemctl enable --now ntfy-print.service
   systemctl status ntfy-print.service

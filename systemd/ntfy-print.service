@@ -16,7 +16,8 @@
 #
 # 配置例:
 #   sudo cp systemd/ntfy-print.service /etc/systemd/system/
-#   sudo cp systemd/ntfy-print.env /etc/default/ntfy-print
+#   sudo cp systemd/ntfy-print.env.template /etc/default/ntfy-print
+#   sudoedit /etc/default/ntfy-print  # NTFY_TOPIC_URL などを設定
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now ntfy-print.service
 

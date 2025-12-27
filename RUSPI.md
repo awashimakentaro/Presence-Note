@@ -78,9 +78,9 @@ pip install -r requirements.txt
 ---
 
 ## 4. 環境変数の設定
-- プロジェクトルートに `.env` を作成し、以下のように `KEY=VALUE` 形式で設定値を書く
+- `.env.template` をコピーして `.env` を作成し、以下のように `KEY=VALUE` 形式で設定値を書く
 ```
-NTFY_TOPIC_URL=https://ntfy.sh/karin
+NTFY_TOPIC_URL=https://ntfy.sh/YOUR_TOPIC
 PRINTER_NAME=Canon_SELPHY_CP1500
 NTFY_TOKEN=
 ```
@@ -120,4 +120,4 @@ python -m app.main
 ## 7. 参考
 - systemd 常駐化の手順は `Demon.md`
 - NTFY/CUPS 設定の詳細は `README.md` を参照
-- `systemd/ntfy-print.service` / `systemd/ntfy-print.env` を `/etc/systemd/system/` / `/etc/default/` に配置することで自動起動可能
+- `systemd/ntfy-print.service` を `/etc/systemd/system/` へ、`systemd/ntfy-print.env.template` を `/etc/default/ntfy-print` にコピーして中身を編集すると自動起動が可能

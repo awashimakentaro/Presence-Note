@@ -1,3 +1,7 @@
 # History artifacts produced at runtime
 app/history/*
 !app/history/README.md
+
+# Local environment files (contain secrets)
+.env
+systemd/ntfy-print.env
